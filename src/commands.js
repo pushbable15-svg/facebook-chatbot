@@ -132,6 +132,11 @@ class CommandHandler {
       return { success: false, message: 'Maximum 100 loops allowed' };
     }
 
+    if (delay < 100) {
+      return { success: false, message: 'Minimum delay is 100ms' };
+    }
+
+    // Run loop asynchronously without blocking
     (async () => {
       for (let i = 0; i < times; i++) {
         try {
@@ -172,8 +177,14 @@ class CommandHandler {
     }
 
     const reactionType = args[0].toLowerCase();
+    const validTypes = ['love', 'haha', 'wow', 'sad', 'angry', 'like', 'dislike'];
+
+    if (!validTypes.includes(reactionType)) {
+      return { success: false, message: `Invalid reaction type. Valid types: ${validTypes.join(', ')}` };
+    }
+
     try {
-      await this.api.setMessageReaction(reactionType, context.messageID, () => {});
+      await this.api.setMessageReaction(reactionType, context.messageID);
       return { success: true, message: `✅ Reacted with: ${reactionType}` };
     } catch (error) {
       return { success: false, message: `Failed to react: ${error.message}` };

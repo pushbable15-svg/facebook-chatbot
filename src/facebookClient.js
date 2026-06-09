@@ -27,7 +27,14 @@ class FacebookClient {
         }
       }
 
+      // Set timeout for login attempt
+      const loginTimeout = setTimeout(() => {
+        reject(new Error('Facebook login timeout after 30 seconds'));
+      }, 30000);
+
       facebookApi(loginOptions, (err, api) => {
+        clearTimeout(loginTimeout);
+
         if (err) {
           log('error', 'Failed to login to Facebook:', err);
           reject(err);
@@ -54,7 +61,11 @@ class FacebookClient {
       }
 
       if (callback) {
-        callback(event);
+        try {
+          callback(event);
+        } catch (error) {
+          log('error', 'Error in listen callback:', error);
+        }
       }
     });
   }
@@ -64,7 +75,11 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.sendMessage(text, threadID, callback);
+    try {
+      this.api.sendMessage(text, threadID, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   changeNickname(newNickname, threadID, userID, callback) {
@@ -72,7 +87,11 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.changeNickname(newNickname, threadID, userID, callback);
+    try {
+      this.api.changeNickname(newNickname, threadID, userID, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   changeThreadName(newName, threadID, callback) {
@@ -80,15 +99,31 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.changeThreadName(newName, threadID, callback);
+    try {
+      this.api.changeThreadName(newName, threadID, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
-  setMessageReaction(reaction, messageID, callback) {
-    if (!this.api) {
-      return callback(new Error('Not connected'));
-    }
+  async setMessageReaction(reaction, messageID) {
+    return new Promise((resolve, reject) => {
+      if (!this.api) {
+        return reject(new Error('Not connected'));
+      }
 
-    this.api.setMessageReaction(reaction, messageID, callback);
+      try {
+        this.api.setMessageReaction(reaction, messageID, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   getUserInfo(userID, callback) {
@@ -96,7 +131,11 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.getUserInfo(userID, callback);
+    try {
+      this.api.getUserInfo(userID, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   getThreadInfo(threadID, callback) {
@@ -104,7 +143,11 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.getThreadInfo(threadID, callback);
+    try {
+      this.api.getThreadInfo(threadID, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   getThreadList(limit, timestamp, callback) {
@@ -112,19 +155,27 @@ class FacebookClient {
       return callback(new Error('Not connected'));
     }
 
-    this.api.getThreadList(limit, timestamp, callback);
+    try {
+      this.api.getThreadList(limit, timestamp, callback);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   disconnect() {
     if (this.api) {
-      this.api.stopListening();
+      try {
+        this.api.stopListening();
+      } catch (error) {
+        log('error', 'Error stopping listener:', error);
+      }
       this.isConnected = false;
       log('info', 'Disconnected from Facebook Chat API');
     }
   }
 
   isLoggedIn() {
-    return this.isConnected;
+    return this.isConnected && this.api !== null;
   }
 }
 

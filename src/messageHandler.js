@@ -10,23 +10,29 @@ class MessageHandler {
     this.autoResponseManager = new AutoResponseManager();
     this.messageLog = [];
     this.autoReactType = 'love';
+    this.maxMessageLog = 1000; // Limit message log size
   }
 
   async handleMessage(event) {
     try {
+      // Validate event
+      if (!event || !event.body) {
+        return;
+      }
+
       const message = {
         id: event.messageID,
         sender: event.senderID,
-        text: event.body,
+        text: event.body || '',
         threadID: event.threadID,
-        timestamp: formatTime(new Date(event.timestamp)),
+        timestamp: formatTime(new Date(event.timestamp || Date.now())),
         type: 'incoming',
       };
 
       log('info', `Message received from ${event.senderID}: ${event.body}`, { threadID: event.threadID });
 
-      // Add to log
-      this.messageLog.push(message);
+      // Add to log (maintain size limit)
+      this.addToMessageLog(message);
 
       // Broadcast to WebSocket clients
       this.broadcastMessage(message);
@@ -66,7 +72,11 @@ class MessageHandler {
       }
     } catch (error) {
       log('error', 'Error handling command:', error);
-      await this.sendMessage(`❌ Error: ${error.message}`, event.threadID);
+      try {
+        await this.sendMessage(`❌ Error: ${error.message}`, event.threadID);
+      } catch (sendError) {
+        log('error', 'Error sending error message:', sendError);
+      }
     }
   }
 
@@ -92,10 +102,11 @@ class MessageHandler {
 
   async handleAutoReact(event) {
     try {
-      await this.api.setMessageReaction(this.autoReactType, event.messageID, () => {});
+      await this.api.setMessageReaction(this.autoReactType, event.messageID);
       log('info', `Auto reacted with ${this.autoReactType}`);
     } catch (error) {
-      log('error', 'Error auto reacting:', error);
+      // Silently fail for auto reactions
+      log('debug', 'Could not auto react:', error.message);
     }
   }
 
@@ -106,18 +117,23 @@ class MessageHandler {
           log('error', 'Error sending message:', err);
           reject(err);
         } else {
-          const outgoingMessage = {
-            id: messageInfo.messageID,
-            text: text,
-            threadID: threadID,
-            timestamp: formatTime(new Date()),
-            type: 'outgoing',
-          };
+          try {
+            const outgoingMessage = {
+              id: messageInfo?.messageID || 'unknown',
+              text: text,
+              threadID: threadID,
+              timestamp: formatTime(new Date()),
+              type: 'outgoing',
+            };
 
-          this.messageLog.push(outgoingMessage);
-          this.broadcastMessage(outgoingMessage);
-          log('info', `Message sent to ${threadID}: ${text}`);
-          resolve(messageInfo);
+            this.addToMessageLog(outgoingMessage);
+            this.broadcastMessage(outgoingMessage);
+            log('info', `Message sent to ${threadID}: ${text}`);
+            resolve(messageInfo);
+          } catch (error) {
+            log('error', 'Error processing sent message:', error);
+            resolve(messageInfo);
+          }
         }
       });
     });
@@ -153,10 +169,22 @@ class MessageHandler {
 
   broadcastMessage(message) {
     if (this.wsServer) {
-      this.wsServer.broadcast({
-        type: 'message',
-        data: message,
-      });
+      try {
+        this.wsServer.broadcast({
+          type: 'message',
+          data: message,
+        });
+      } catch (error) {
+        log('error', 'Error broadcasting message:', error);
+      }
+    }
+  }
+
+  addToMessageLog(message) {
+    this.messageLog.push(message);
+    // Keep message log size limited
+    if (this.messageLog.length > this.maxMessageLog) {
+      this.messageLog.shift();
     }
   }
 

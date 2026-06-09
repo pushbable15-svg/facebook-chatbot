@@ -1,6 +1,8 @@
 // WebSocket connection
 let ws = null;
 let wsConnected = false;
+let wsReconnectAttempts = 0;
+const wsMaxReconnectAttempts = 5;
 
 // DOM Elements
 const statusText = document.getElementById('statusText');
@@ -36,35 +38,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== WebSocket ====================
 
-function connectWebSocket() {
+function getWebSocketUrl() {
+    // For local development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//localhost:3001`;
+    }
+    // For production
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:3001`;
+    return `${protocol}//${window.location.host.split(':')[0]}:3001`;
+}
 
-    ws = new WebSocket(wsUrl);
+function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return; // Already connecting or connected
+    }
 
-    ws.addEventListener('open', () => {
-        wsConnected = true;
-        updateConnectionStatus(true);
-        console.log('WebSocket connected');
-    });
+    const wsUrl = getWebSocketUrl();
+    console.log('Attempting WebSocket connection to:', wsUrl);
 
-    ws.addEventListener('message', (event) => {
-        const data = JSON.parse(event.data);
-        handleWebSocketMessage(data);
-    });
+    try {
+        ws = new WebSocket(wsUrl);
 
-    ws.addEventListener('close', () => {
-        wsConnected = false;
+        ws.addEventListener('open', () => {
+            wsConnected = true;
+            wsReconnectAttempts = 0;
+            updateConnectionStatus(true);
+            console.log('WebSocket connected');
+        });
+
+        ws.addEventListener('message', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+            }
+        });
+
+        ws.addEventListener('close', () => {
+            wsConnected = false;
+            updateConnectionStatus(false);
+            console.log('WebSocket disconnected');
+            // Attempt reconnection with exponential backoff
+            if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+                const delay = Math.pow(2, wsReconnectAttempts) * 1000; // Exponential backoff
+                wsReconnectAttempts++;
+                console.log(`Attempting to reconnect in ${delay}ms (attempt ${wsReconnectAttempts}/${wsMaxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            }
+        });
+
+        ws.addEventListener('error', (error) => {
+            console.error('WebSocket error:', error);
+            updateConnectionStatus(false);
+        });
+    } catch (error) {
+        console.error('Error creating WebSocket:', error);
         updateConnectionStatus(false);
-        console.log('WebSocket disconnected');
-        // Attempt reconnection after 3 seconds
-        setTimeout(connectWebSocket, 3000);
-    });
-
-    ws.addEventListener('error', (error) => {
-        console.error('WebSocket error:', error);
-        updateConnectionStatus(false);
-    });
+    }
 }
 
 function handleWebSocketMessage(data) {
@@ -88,31 +120,35 @@ function updateConnectionStatus(connected) {
 }
 
 function displayMessage(message) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${message.type}`;
+    try {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${message.type}`;
 
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.textContent = message.text;
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = message.text || '';
 
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'message-time';
-    timeDiv.textContent = message.timestamp;
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = message.timestamp || new Date().toLocaleTimeString();
 
-    messageDiv.appendChild(contentDiv);
-    messageDiv.appendChild(timeDiv);
+        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(timeDiv);
 
-    // Remove placeholder if exists
-    const placeholder = chatMessages.querySelector('.message-placeholder');
-    if (placeholder) {
-        placeholder.remove();
+        // Remove placeholder if exists
+        const placeholder = chatMessages.querySelector('.message-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Update message count
+        updateStats();
+    } catch (error) {
+        console.error('Error displaying message:', error);
     }
-
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Update message count
-    updateStats();
 }
 
 function sendMessage() {
@@ -123,6 +159,9 @@ function sendMessage() {
         alert('Please enter a message');
         return;
     }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
 
     fetch('/api/send-message', {
         method: 'POST',
@@ -140,12 +179,16 @@ function sendMessage() {
                 messageInput.value = '';
                 console.log('Message sent successfully');
             } else {
-                alert('Error sending message: ' + data.error);
+                alert('Error sending message: ' + (data.error || 'Unknown error'));
             }
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert('Error sending message');
+            alert('Error sending message: ' + error.message);
+        })
+        .finally(() => {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
         });
 }
 
@@ -164,9 +207,14 @@ function enableAutoResponse() {
         .then((data) => {
             if (data.success) {
                 alert('Auto response enabled');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
-        .catch((error) => console.error('Error:', error));
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
 }
 
 function disableAutoResponse() {
@@ -175,9 +223,14 @@ function disableAutoResponse() {
         .then((data) => {
             if (data.success) {
                 alert('Auto response disabled');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
-        .catch((error) => console.error('Error:', error));
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
 }
 
 function setAutoReact() {
@@ -194,14 +247,19 @@ function setAutoReact() {
         .then((data) => {
             if (data.success) {
                 alert('Auto react type set to: ' + type);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
-        .catch((error) => console.error('Error:', error));
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
 }
 
 function addAutoResponse() {
     const trigger = document.getElementById('responseTrigger').value.trim();
-    const responses = document.getElementById('responseText').value.trim().split('\n').filter((r) => r);
+    const responses = document.getElementById('responseText').value.trim().split('\n').filter((r) => r.trim());
 
     if (!trigger || responses.length === 0) {
         alert('Please fill in trigger and response');
@@ -224,20 +282,28 @@ function addAutoResponse() {
                 alert('Auto response added');
                 document.getElementById('responseTrigger').value = '';
                 document.getElementById('responseText').value = '';
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
-        .catch((error) => console.error('Error:', error));
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
 }
 
 // ==================== Status Update ====================
 
 function updateStatus() {
     fetch('/api/status')
-        .then((response) => response.json())
+        .then((response) => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
         .then((data) => {
             uptime.textContent = formatUptime(data.uptime);
             memory.textContent = data.memoryUsage.toFixed(2) + 'MB';
-            wsClients.textContent = data.websocketClients;
+            wsClients.textContent = data.websocketClients || 0;
         })
         .catch((error) => console.error('Error fetching status:', error));
 
@@ -246,14 +312,19 @@ function updateStatus() {
 
 function updateStats() {
     fetch('/api/messages')
-        .then((response) => response.json())
+        .then((response) => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
         .then((data) => {
-            messageCount.textContent = data.count;
+            messageCount.textContent = data.count || 0;
         })
         .catch((error) => console.error('Error fetching messages:', error));
 }
 
 function formatUptime(seconds) {
+    if (!seconds) return '0s';
+    
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
