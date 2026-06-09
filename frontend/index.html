@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Chatbot Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🤖 Facebook Chatbot Dashboard</h1>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Controls</h3>
+                    <button id="enableAutoResponse" class="btn btn-primary">Enable Auto Response</button>
+                    <button id="disableAutoResponse" class="btn btn-secondary">Disable Auto Response</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Auto React Type</h3>
+                    <select id="autoReactType" class="select-input">
+                        <option value="love">❤️ Love</option>
+                        <option value="haha">😆 Haha</option>
+                        <option value="wow">😮 Wow</option>
+                        <option value="sad">😢 Sad</option>
+                        <option value="angry">😠 Angry</option>
+                        <option value="like">👍 Like</option>
+                        <option value="dislike">👎 Dislike</option>
+                    </select>
+                    <button id="setAutoReact" class="btn btn-info">Set</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Quick Commands</h3>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <strong>/help</strong> - Show all commands
+                        </div>
+                        <div class="command-item">
+                            <strong>/nickname</strong> - Change your nickname
+                        </div>
+                        <div class="command-item">
+                            <strong>/groupname</strong> - Change group name
+                        </div>
+                        <div class="command-item">
+                            <strong>/loop</strong> - Send message repeatedly
+                        </div>
+                        <div class="command-item">
+                            <strong>/react</strong> - React to message
+                        </div>
+                        <div class="command-item">
+                            <strong>/status</strong> - Show bot status
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Add Auto Response</h3>
+                    <input type="text" id="responseTrigger" placeholder="Trigger word" class="input-field">
+                    <textarea id="responseText" placeholder="Response text" class="input-field"></textarea>
+                    <button id="addAutoResponse" class="btn btn-success">Add Response</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Stats</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span>Messages:</span>
+                            <strong id="messageCount">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Uptime:</span>
+                            <strong id="uptime">--</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Memory:</span>
+                            <strong id="memory">--</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>WS Clients:</span>
+                            <strong id="wsClients">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chat Area -->
+            <section class="chat-section">
+                <div class="chat-header">
+                    <h2>Messages</h2>
+                    <button id="clearChat" class="btn btn-danger btn-small">Clear</button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message-placeholder">
+                        <p>No messages yet. Waiting for incoming messages...</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-group">
+                        <input type="text" id="threadIDInput" placeholder="Thread ID (optional)" class="input-field">
+                        <input type="text" id="messageInput" placeholder="Type a message or command..." class="input-field">
+                        <button id="sendBtn" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
