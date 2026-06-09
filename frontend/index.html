@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Facebook Chatbot Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -25,13 +26,13 @@
             <aside class="sidebar">
                 <div class="sidebar-section">
                     <h3>Controls</h3>
-                    <button id="enableAutoResponse" class="btn btn-primary">Enable Auto Response</button>
-                    <button id="disableAutoResponse" class="btn btn-secondary">Disable Auto Response</button>
+                    <button id="enableAutoResponse" class="btn btn-primary" title="Enable auto responses">Enable Auto Response</button>
+                    <button id="disableAutoResponse" class="btn btn-secondary" title="Disable auto responses">Disable Auto Response</button>
                 </div>
 
                 <div class="sidebar-section">
                     <h3>Auto React Type</h3>
-                    <select id="autoReactType" class="select-input">
+                    <select id="autoReactType" class="select-input" title="Select reaction emoji">
                         <option value="love">❤️ Love</option>
                         <option value="haha">😆 Haha</option>
                         <option value="wow">😮 Wow</option>
@@ -40,7 +41,7 @@
                         <option value="like">👍 Like</option>
                         <option value="dislike">👎 Dislike</option>
                     </select>
-                    <button id="setAutoReact" class="btn btn-info">Set</button>
+                    <button id="setAutoReact" class="btn btn-info" title="Set auto reaction type">Set</button>
                 </div>
 
                 <div class="sidebar-section">
@@ -69,9 +70,9 @@
 
                 <div class="sidebar-section">
                     <h3>Add Auto Response</h3>
-                    <input type="text" id="responseTrigger" placeholder="Trigger word" class="input-field">
-                    <textarea id="responseText" placeholder="Response text" class="input-field"></textarea>
-                    <button id="addAutoResponse" class="btn btn-success">Add Response</button>
+                    <input type="text" id="responseTrigger" placeholder="Trigger word" class="input-field" title="Enter trigger keyword">
+                    <textarea id="responseText" placeholder="Response text (one per line)" class="input-field" title="Enter response text"></textarea>
+                    <button id="addAutoResponse" class="btn btn-success" title="Add new auto response">Add Response</button>
                 </div>
 
                 <div class="sidebar-section">
@@ -91,7 +92,7 @@
                         </div>
                         <div class="stat-item">
                             <span>WS Clients:</span>
-                            <strong id="wsClients">--</strong>
+                            <strong id="wsClients">0</strong>
                         </div>
                     </div>
                 </div>
@@ -101,10 +102,10 @@
             <section class="chat-section">
                 <div class="chat-header">
                     <h2>Messages</h2>
-                    <button id="clearChat" class="btn btn-danger btn-small">Clear</button>
+                    <button id="clearChat" class="btn btn-danger btn-small" title="Clear all messages">Clear</button>
                 </div>
 
-                <div class="chat-messages" id="chatMessages">
+                <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
                     <div class="message-placeholder">
                         <p>No messages yet. Waiting for incoming messages...</p>
                     </div>
@@ -112,9 +113,9 @@
 
                 <div class="chat-input-area">
                     <div class="input-group">
-                        <input type="text" id="threadIDInput" placeholder="Thread ID (optional)" class="input-field">
-                        <input type="text" id="messageInput" placeholder="Type a message or command..." class="input-field">
-                        <button id="sendBtn" class="btn btn-primary">Send</button>
+                        <input type="text" id="threadIDInput" placeholder="Thread ID (optional)" class="input-field" title="Enter Facebook thread ID">
+                        <input type="text" id="messageInput" placeholder="Type a message or command..." class="input-field" title="Type message and press Enter or click Send">
+                        <button id="sendBtn" class="btn btn-primary" title="Send message (or press Enter)">Send</button>
                     </div>
                 </div>
             </section>
